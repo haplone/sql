@@ -30,6 +30,7 @@ func main() {
 		case *ast.InsertStmt:
 			if count == 0 {
 
+				log.Println(tp)
 				f := visitor.TblNameVisitor{}
 				tp.Accept(&f)
 				log.Printf("======== target table: %s", tp.Table.TableRefs.Left.(*ast.TableSource).Source.(*ast.TableName).Name.L)
@@ -41,7 +42,7 @@ func main() {
 }
 
 func getSql() string {
-	f, err := os.Open("example.sql")
+	f, err := os.Open("/data/example.sql")
 	check(err)
 	c, err := ioutil.ReadAll(f)
 	check(err)
