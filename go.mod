@@ -1,4 +1,4 @@
-module sql
+module github.com/haplone/sql
 
 require (
 	github.com/golang/protobuf v1.2.0 // indirect
@@ -6,4 +6,5 @@ require (
 	github.com/pingcap/tidb v0.0.0-20181130082510-08f0168a6cae
 	github.com/pingcap/tipb v0.0.0-20181126132056-a7fd2aaa9719 // indirect
 	github.com/sirupsen/logrus v1.2.0 // indirect
+	github.com/haplone/sql v0.0.0-20181205100331-6f2cadae8013
 )
