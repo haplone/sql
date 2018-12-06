@@ -41,3 +41,14 @@ func TestTableList(t *testing.T) {
 		assert.Equal(t,i.out,l.String())
 	}
 }
+
+func TestSelectStmt_Append(t *testing.T) {
+	st := &STable{
+		Schema: model.NewCIStr("schemaName"),
+		Name: model.NewCIStr("tblName"),
+	}
+
+	s := SelectStmt{}
+
+	s.Append(st)
+}

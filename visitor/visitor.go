@@ -2,37 +2,31 @@ package visitor
 
 import (
 	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/model"
-	"fmt"
 	"log"
 	"reflect"
 )
 
 type AVisitor struct {
-	tbls     map[string]Table
-	joinType int
+	Select *SelectStmt
 }
 
 func NewAVisitor() AVisitor {
 	return AVisitor{
-		tbls: make(map[string]Table),
+		Select: &SelectStmt{},
 	}
 }
 
 func (v *AVisitor) getTblNames() string {
-	l := TableList{}
-	for _, t := range v.tbls {
-		l = l.Append(t)
-	}
-	return l.String()
+	//log.Println("getTblName ",v.Select.String())
+	return v.Select.String()
 }
 
 func (v *AVisitor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
 	log.Println("Enter: ", reflect.TypeOf(in))
 	switch n := in.(type) {
 	case *ast.SelectStmt:
-		v.parseSelectStmt(n, v.tbls)
-		return in,true
+		v.parseSelectStmt(n.From.TableRefs, v.Select)
+		return in, true
 	default:
 
 	}
@@ -44,18 +38,42 @@ func (v *AVisitor) Leave(in ast.Node) (out ast.Node, ok bool) {
 	return in, true
 }
 
-func (v *AVisitor) parseSelectStmt(n *ast.SelectStmt, m map[string]Table) {
-	tr := n.From.TableRefs
-
-	v.joinType = int(tr.Tp)
-
+func (v *AVisitor) parseSelectStmt(n *ast.Join, stmt *SelectStmt) {
 	//log.Println(reflect.TypeOf(tr.Left))
 	//log.Println(reflect.TypeOf(tr.Right))
-	v.extractTblName(tr.Left, m)
-	v.extractTblName(tr.Right, m)
+	v.extractTblName(n.Left, stmt)
+
+	if n.On != nil {
+		log.Println(reflect.TypeOf(n.On.Expr))
+		switch oe := n.On.Expr.(type) {
+		case *ast.BinaryOperationExpr:
+			log.Println(reflect.TypeOf(oe.L))
+			lc := parseExprName(oe.L)
+			log.Println(reflect.TypeOf(oe.Op))
+			log.Println(reflect.TypeOf(oe.R))
+			rc := parseExprName(oe.R)
+
+			join := &SJoin{}
+			switch n.Tp {
+			case ast.CrossJoin:
+				join.Type = "cross"
+			case ast.LeftJoin:
+				join.Type = "left"
+			case ast.RightJoin:
+				join.Type = "right"
+			}
+			join.Nodes = append(join.Nodes, ColumnExpr{
+				L:  lc,
+				Op: oe.Op.String(),
+				R:  rc,
+			})
+			stmt.Append(join)
+		}
+	}
+	v.extractTblName(n.Right, stmt)
 }
 
-func (v *AVisitor) extractTblName(i ast.ResultSetNode, m map[string]Table) {
+func (v *AVisitor) extractTblName(i ast.ResultSetNode, stmt *SelectStmt) {
 	//log.Println("ex: ", reflect.TypeOf(i))
 	if i != nil {
 		switch l := i.(type) {
@@ -65,26 +83,39 @@ func (v *AVisitor) extractTblName(i ast.ResultSetNode, m map[string]Table) {
 			//v.tbls = append(v.tbls, l.Source.(*ast.TableName).Name.L)
 			switch s := l.Source.(type) {
 			case *ast.SelectStmt:
-				name := model.NewCIStr(fmt.Sprintf("%s", l.AsName.L))
-				log.Println("asname: ",name.L)
-				var tbl Table
-				if _, ok := m[name.L]; !ok {
-					log.Println("couldn't get tbl")
-					tbl = Table{Name: name, Children: make(map[string]Table)}
-					m[tbl.Name.L] = tbl
+				tmpTbl := &STmpTable{
+					Alia: l.AsName,
+					Stmt: &SelectStmt{},
 				}
-				v.parseSelectStmt(s, tbl.Children)
+				stmt.Append(tmpTbl)
+				v.parseSelectStmt(s.From.TableRefs, tmpTbl.Stmt)
 			case *ast.TableName:
-				name := model.NewCIStr(fmt.Sprintf("%s.%s", s.Schema.L, s.Name.L))
-				if _, ok := m[name.L]; !ok {
-					tbl := Table{Name: name, Children: make(map[string]Table)}
-					m[tbl.Name.L] = tbl
+				st := &STable{
+					Schema: s.Schema,
+					Name:   s.Name,
+					Alia:   l.AsName,
 				}
+				stmt.Append(st)
 			}
 		case *ast.Join:
-			v.extractTblName(l.Left, m)
-			v.extractTblName(l.Right, m)
-
+			v.parseSelectStmt(l, stmt)
 		}
 	}
+}
+
+func (v *AVisitor) parseExpr(e ast.BinaryOperationExpr) {
+
+}
+
+func parseExprName(c ast.ExprNode) ColumnNode {
+	switch e := c.(type) {
+	case *ast.ColumnNameExpr:
+		c := ColumnNode{
+			Schema: e.Name.Schema,
+			Table:  e.Name.Table,
+			Name:   e.Name.Name,
+		}
+		return c
+	}
+	return ColumnNode{}
 }
