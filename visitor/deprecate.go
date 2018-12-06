@@ -21,11 +21,11 @@ func (v *FVisitor) Leave(in ast.Node) (node ast.Node, ok bool) {
 	return in, true
 }
 
-type TblNameVisitor struct {
+type TblNameVisitor2 struct {
 }
 
-func (v *TblNameVisitor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
-	log.Println("tp: %s", reflect.TypeOf(in))
+func (v *TblNameVisitor2) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
+	log.Printf("tp: %s", reflect.TypeOf(in))
 	switch a := in.(type) {
 	case *ast.TableName:
 		log.Printf("tblName: %s.%s", a.Schema.L, a.Name.L)
@@ -42,7 +42,7 @@ func (v *TblNameVisitor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {
 	return in, false
 }
 
-func (v *TblNameVisitor) Leave(in ast.Node) (out ast.Node, ok bool) {
+func (v *TblNameVisitor2) Leave(in ast.Node) (out ast.Node, ok bool) {
 	return in, true
 }
 
