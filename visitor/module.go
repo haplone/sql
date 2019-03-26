@@ -1,11 +1,11 @@
 package visitor
 
 import (
-	"strings"
-	"github.com/pingcap/parser/model"
-	"sort"
 	"fmt"
+	"github.com/pingcap/parser/model"
 	"log"
+	"sort"
+	"strings"
 )
 
 type Table struct {
@@ -80,7 +80,28 @@ func (s *SelectStmt) String() string {
 			}
 		}
 	}
-	return "select from " + strings.Join(r, " ")
+	return strings.Join(r, " ")
+}
+
+func (s *SelectStmt) Columns() string {
+	if s == nil || s.Nodes == nil {
+		log.Println("has no stmt")
+		return ""
+	}
+	skip := make(map[int]bool)
+	var r []string
+	for idx, i := range s.Nodes {
+		if _, ok := skip[idx]; !ok {
+			switch n := i.(type) {
+			case *SJoin:
+				r = append(r, s.Nodes[idx+1].String()+" on "+n.Text())
+				skip[idx+1] = true
+			default:
+				r = append(r, i.String())
+			}
+		}
+	}
+	return strings.Join(r, " ")
 }
 
 type SelectNode interface {
@@ -116,7 +137,7 @@ type SJoin struct {
 }
 
 func (j *SJoin) Text() string {
-	var r [] string
+	var r []string
 
 	for _, n := range j.Nodes {
 		r = append(r, n.String())
@@ -125,7 +146,7 @@ func (j *SJoin) Text() string {
 }
 
 func (j *SJoin) String() string {
-	var r [] string
+	var r []string
 	r = append(r, j.Type)
 
 	for _, n := range j.Nodes {

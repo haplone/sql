@@ -18,7 +18,7 @@ func NewAVisitor() AVisitor {
 
 func (v *AVisitor) getTblNames() string {
 	//log.Println("getTblName ",v.Select.String())
-	return v.Select.String()
+	return v.Select.Columns()
 }
 
 func (v *AVisitor) Enter(in ast.Node) (out ast.Node, skipChildren bool) {

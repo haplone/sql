@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
+	"github.com/haplone/sql/visitor"
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
 	_ "github.com/pingcap/tidb/types/parser_driver"
 	"io/ioutil"
+	"log"
 	"os"
-	"github.com/haplone/sql/visitor"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	p := parser.New()
 
-	asts, err := p.Parse(sqlContent, "", "")
+	asts, _, err := p.Parse(sqlContent, "", "")
 
 	check(err)
 	var count int32 = 0
@@ -31,7 +31,7 @@ func main() {
 			if count == 0 {
 
 				log.Println(tp)
-				f := visitor.TblNameVisitor{}
+				f := visitor.NewAVisitor()
 				tp.Accept(&f)
 				log.Printf("======== target table: %s", tp.Table.TableRefs.Left.(*ast.TableSource).Source.(*ast.TableName).Name.L)
 			}
